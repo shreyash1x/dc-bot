@@ -82,11 +82,11 @@ export default {
 
           const mainSection = new SectionBuilder()
             .addTextDisplayComponents(headerText, capText)
-            .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://i.imgur.com/8QzXz3F.png' } }));
+            .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://res.cloudinary.com/dvsah4ego/image/upload/v1779762823/IMG_20260526_075723_rk0xkc.jpg' } }));
 
           const rosterSection = new SectionBuilder()
             .addTextDisplayComponents(rosterTitle, rosterText)
-            .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://i.imgur.com/8QzXz3F.png' } }));
+            .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://res.cloudinary.com/dvsah4ego/image/upload/v1779762823/IMG_20260526_075723_rk0xkc.jpg' } }));
 
           const container = new ContainerBuilder()
             .setAccentColor(0x000001) // Pure Black
