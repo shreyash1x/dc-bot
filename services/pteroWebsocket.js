@@ -31,20 +31,33 @@ class PteroWebsocketService extends EventEmitter {
       this.token = credentials.token;
       this.socketUrl = credentials.socket;
 
+      console.log('[PteroWebsocket] WebSocket URL:', this.socketUrl);
+      console.log('[PteroWebsocket] PTERO_URL env:', process.env.PTERO_URL);
+
       // 2. Create WebSocket connection
       // We pass Origin and User-Agent headers because Wings validates connection origins to prevent unauthorized WS hijacking
       const origin = process.env.PTERO_URL?.replace(/\/$/, '');
-      this.ws = new WebSocket(this.socketUrl, {
-        handshakeTimeout: 10000,
+      const wsOptions = {
+        handshakeTimeout: 20000, // Increased from 10s to 20s
         headers: {
           'Origin': origin || '',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
+        },
+        rejectUnauthorized: false // Allow self-signed certificates
+      };
+
+      console.log('[PteroWebsocket] Connection options:', { 
+        url: this.socketUrl, 
+        origin: origin || 'Not set',
+        handshakeTimeout: wsOptions.handshakeTimeout
       });
+
+      this.ws = new WebSocket(this.socketUrl, wsOptions);
 
       this.registerEvents();
     } catch (error) {
       console.error('[PteroWebsocket] Connection setup failed:', error.message);
+      console.error('[PteroWebsocket] Full error:', error);
       this.isConnecting = false;
       this.scheduleReconnect();
     }
@@ -77,6 +90,8 @@ class PteroWebsocketService extends EventEmitter {
 
     this.ws.on('error', (error) => {
       console.error('[PteroWebsocket] Socket error:', error.message);
+      console.error('[PteroWebsocket] Error details:', error.code, error.errno);
+      if (error.cause) console.error('[PteroWebsocket] Error cause:', error.cause.message);
       // close event will follow error event, handling disconnect there
     });
   }

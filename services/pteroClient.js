@@ -60,10 +60,19 @@ export class PteroClient {
    */
   static async getWebSocketCredentials() {
     try {
+      console.log('[PteroClient] Fetching WebSocket credentials from Pterodactyl API...');
       const response = await apiClient.get(`/servers/${serverId}/websocket`);
+      console.log('[PteroClient] WebSocket credentials received:', response.data.data);
       return response.data.data;
     } catch (error) {
       console.error('[PteroClient] Error fetching websocket credentials:', error.message);
+      if (error.response) {
+        console.error('[PteroClient] Response status:', error.response.status);
+        console.error('[PteroClient] Response data:', error.response.data);
+      }
+      if (error.code) {
+        console.error('[PteroClient] Error code:', error.code);
+      }
       throw new Error(error.response?.data?.errors?.[0]?.detail || error.message);
     }
   }
