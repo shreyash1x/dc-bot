@@ -48,9 +48,10 @@ export default {
     }
 
     if (!pteroWebsocket.isConnected) {
-      const errorTitle = new TextDisplayBuilder().setContent('❌ **Command Error**');
+      const errorTitle = new TextDisplayBuilder().setContent('❌ **Command Unavailable**');
       const errorDesc = new TextDisplayBuilder().setContent(
-        'Bot is temporarily disconnected from the console stream. Please try again in a few moments.'
+        'The bot is currently disconnected from the console stream. This feature requires a live WebSocket connection to query TPS in real-time.\n\n' +
+        'Try again in a few moments, or contact your server administrator if this persists.'
       );
 
       const errorSection = new SectionBuilder()

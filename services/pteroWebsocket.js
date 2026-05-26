@@ -31,28 +31,40 @@ class PteroWebsocketService extends EventEmitter {
       this.token = credentials.token;
       this.socketUrl = credentials.socket;
 
+      // 2. Append token as query parameter for authentication during handshake
+      const wsUrlWithToken = `${this.socketUrl}?token=${encodeURIComponent(this.token)}`;
+
       console.log('[PteroWebsocket] WebSocket URL:', this.socketUrl);
       console.log('[PteroWebsocket] PTERO_URL env:', process.env.PTERO_URL);
 
-      // 2. Create WebSocket connection
-      // We pass Origin and User-Agent headers because Wings validates connection origins to prevent unauthorized WS hijacking
+      // 3. Create WebSocket connection with token in URL
       const origin = process.env.PTERO_URL?.replace(/\/$/, '');
       const wsOptions = {
-        handshakeTimeout: 20000, // Increased from 10s to 20s
+        handshakeTimeout: 20000,
         headers: {
           'Origin': origin || '',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         },
-        rejectUnauthorized: false // Allow self-signed certificates
+        rejectUnauthorized: false
       };
 
       console.log('[PteroWebsocket] Connection options:', { 
         url: this.socketUrl, 
         origin: origin || 'Not set',
-        handshakeTimeout: wsOptions.handshakeTimeout
+        handshakeTimeout: wsOptions.handshakeTimeout,
+        hasToken: !!this.token
       });
 
-      this.ws = new WebSocket(this.socketUrl, wsOptions);
+      // Extract host from URL for debugging
+      try {
+        const url = new URL(this.socketUrl);
+        console.log('[PteroWebsocket] Connecting to host:', url.hostname);
+        console.log('[PteroWebsocket] Port:', url.port);
+      } catch (e) {
+        console.error('[PteroWebsocket] Failed to parse WebSocket URL:', e.message);
+      }
+
+      this.ws = new WebSocket(wsUrlWithToken, wsOptions);
 
       this.registerEvents();
     } catch (error) {
@@ -90,8 +102,20 @@ class PteroWebsocketService extends EventEmitter {
 
     this.ws.on('error', (error) => {
       console.error('[PteroWebsocket] Socket error:', error.message);
-      console.error('[PteroWebsocket] Error details:', error.code, error.errno);
+      console.error('[PteroWebsocket] Error code:', error.code);
+      console.error('[PteroWebsocket] Error errno:', error.errno);
       if (error.cause) console.error('[PteroWebsocket] Error cause:', error.cause.message);
+      
+      // Try to provide more specific debugging info
+      if (error.message.includes('ENOTFOUND')) {
+        console.error('[PteroWebsocket] DNS resolution failed - cannot find host. Check your PTERO_URL.');
+      } else if (error.message.includes('ECONNREFUSED')) {
+        console.error('[PteroWebsocket] Connection refused - port might not be accessible or service not running.');
+      } else if (error.message.includes('ETIMEDOUT')) {
+        console.error('[PteroWebsocket] Connection timed out - network unreachable or firewall blocking.');
+      } else if (error.message.includes('handshake')) {
+        console.error('[PteroWebsocket] WebSocket handshake failed - Wings daemon might not be running or URL is incorrect.');
+      }
       // close event will follow error event, handling disconnect there
     });
   }
@@ -209,6 +233,13 @@ class PteroWebsocketService extends EventEmitter {
    */
   scheduleReconnect() {
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+
+    // If we've been failing for a while, stop trying
+    if (this.reconnectDelay >= this.maxReconnectDelay) {
+      console.warn(`[PteroWebsocket] Max reconnection delay reached (${this.maxReconnectDelay / 1000}s). WebSocket connection is unavailable.`);
+      console.warn(`[PteroWebsocket] Commands will continue to work via REST API, but real-time console updates will be disabled.`);
+      return; // Stop attempting to reconnect
+    }
 
     console.log(`[PteroWebsocket] Reconnecting in ${this.reconnectDelay / 1000}s...`);
     this.reconnectTimeout = setTimeout(() => {
