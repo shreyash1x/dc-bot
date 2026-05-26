@@ -39,7 +39,7 @@ export default {
 
       const accessSection = new SectionBuilder()
         .addTextDisplayComponents(accessTitle, accessDesc)
-        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://i.imgur.com/8QzXz3F.png' } }));
+        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://res.cloudinary.com/dvsah4ego/image/upload/v1779762823/IMG_20260526_075723_rk0xkc.jpg' } }));
 
       const container = new ContainerBuilder()
         .setAccentColor(0x000001) // Pure Black
@@ -68,7 +68,7 @@ export default {
 
       const successSection = new SectionBuilder()
         .addTextDisplayComponents(successTitle, successDesc)
-        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://i.imgur.com/8QzXz3F.png' } }));
+        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://res.cloudinary.com/dvsah4ego/image/upload/v1779762823/IMG_20260526_075723_rk0xkc.jpg' } }));
 
       const container = new ContainerBuilder()
         .setAccentColor(0x000001) // Pure Black
@@ -87,7 +87,7 @@ export default {
 
       const errorSection = new SectionBuilder()
         .addTextDisplayComponents(errorTitle, errorDesc)
-        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://i.imgur.com/8QzXz3F.png' } }));
+        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://res.cloudinary.com/dvsah4ego/image/upload/v1779762823/IMG_20260526_075723_rk0xkc.jpg' } }));
 
       const container = new ContainerBuilder()
         .setAccentColor(0x000001)
