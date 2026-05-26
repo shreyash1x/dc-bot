@@ -8,6 +8,7 @@ import {
   ContainerBuilder, 
   MessageFlags 
 } from 'discord.js';
+import { PteroClient } from '../services/pteroClient.js';
 import { pteroWebsocket } from '../services/pteroWebsocket.js';
 import { createProgressBar } from '../utils/helpers.js';
 
@@ -20,10 +21,18 @@ export default {
     await interaction.deferReply();
 
     // 1. Pre-check if server is active and running
-    if (pteroWebsocket.serverStatus !== 'running') {
+    let serverStatus = 'offline';
+    try {
+      const res = await PteroClient.getServerResources();
+      serverStatus = res.attributes.current_state;
+    } catch (error) {
+      console.error('[Players Command] Error fetching server status:', error.message);
+    }
+
+    if (serverStatus !== 'running') {
       const errorTitle = new TextDisplayBuilder().setContent('❌ **Command Error**');
       const errorDesc = new TextDisplayBuilder().setContent(
-        `The Minecraft server is currently **${pteroWebsocket.serverStatus.toUpperCase()}**. Please wait for the server to be fully running.`
+        `The Minecraft server is currently **${serverStatus.toUpperCase()}**. Please wait for the server to be fully running.`
       );
 
       const errorSection = new SectionBuilder()

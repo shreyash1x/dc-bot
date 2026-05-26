@@ -6,6 +6,7 @@ import {
   ContainerBuilder, 
   MessageFlags 
 } from 'discord.js';
+import { PteroClient } from '../services/pteroClient.js';
 import { pteroWebsocket } from '../services/pteroWebsocket.js';
 import dotenv from 'dotenv';
 
@@ -52,10 +53,18 @@ export default {
     }
 
     // 2. Pre-check if server is active and running
-    if (pteroWebsocket.serverStatus !== 'running') {
+    let serverStatus = 'offline';
+    try {
+      const res = await PteroClient.getServerResources();
+      serverStatus = res.attributes.current_state;
+    } catch (error) {
+      console.error('[Whitelist Command] Error fetching server status:', error.message);
+    }
+
+    if (serverStatus !== 'running') {
       const errorTitle = new TextDisplayBuilder().setContent('❌ **Command Error**');
       const errorDesc = new TextDisplayBuilder().setContent(
-        `The Minecraft server is currently **${pteroWebsocket.serverStatus.toUpperCase()}**. Please wait for the server to be fully running to manage the whitelist.`
+        `The Minecraft server is currently **${serverStatus.toUpperCase()}**. Please wait for the server to be fully running to manage the whitelist.`
       );
 
       const errorSection = new SectionBuilder()

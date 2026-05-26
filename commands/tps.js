@@ -6,6 +6,7 @@ import {
   ContainerBuilder, 
   MessageFlags 
 } from 'discord.js';
+import { PteroClient } from '../services/pteroClient.js';
 import { pteroWebsocket } from '../services/pteroWebsocket.js';
 import { getStatusBadge } from '../utils/helpers.js';
 
@@ -18,10 +19,18 @@ export default {
     await interaction.deferReply();
 
     // 1. Pre-check if server is active and running
-    if (pteroWebsocket.serverStatus !== 'running') {
+    let serverStatus = 'offline';
+    try {
+      const res = await PteroClient.getServerResources();
+      serverStatus = res.attributes.current_state;
+    } catch (error) {
+      console.error('[TPS Command] Error fetching server status:', error.message);
+    }
+
+    if (serverStatus !== 'running') {
       const errorTitle = new TextDisplayBuilder().setContent('❌ **Command Error**');
       const errorDesc = new TextDisplayBuilder().setContent(
-        `The Minecraft server is currently **${pteroWebsocket.serverStatus.toUpperCase()}**. Please wait for the server to be fully running to check TPS.`
+        `The Minecraft server is currently **${serverStatus.toUpperCase()}**. Please wait for the server to be fully running to check TPS.`
       );
 
       const errorSection = new SectionBuilder()
@@ -98,7 +107,7 @@ export default {
 
       const headerText = new TextDisplayBuilder().setContent('📊 **Server Performance Monitor**');
       const descText = new TextDisplayBuilder().setContent([
-        `📡 **Server State:** ${getStatusBadge(pteroWebsocket.serverStatus)}`,
+        `📡 **Server State:** ${getStatusBadge(serverStatus)}`,
         `⚙️ **Performance Status:** ${performanceRating}`,
         ` `,
         `**Tick-Rate Details (TPS):**`,
