@@ -11,6 +11,7 @@ import {
   MessageFlags 
 } from 'discord.js';
 import { PteroClient } from '../services/pteroClient.js';
+import { pteroWebsocket } from '../services/pteroWebsocket.js';
 import { createProgressBar, getStatusBadge, formatBytes } from '../utils/helpers.js';
 
 // Cooldown collection: commandName -> Collection(userId -> expirationTime)
