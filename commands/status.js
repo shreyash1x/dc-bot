@@ -29,9 +29,9 @@ export default {
       const status = stats.current_state; // running, starting, stopping, offline
       const cpu = stats.resources.cpu_absolute;
       const ramBytes = stats.resources.memory_bytes;
-      const maxRamBytes = stats.resources.memory_limit_bytes || 4294967296; // Fallback 4GB
+      const maxRamBytes = stats.resources.memory_limit_bytes || 12884901888; // Fallback 4GB
       const diskBytes = stats.resources.disk_bytes;
-      const maxDiskBytes = stats.resources.disk_limit_bytes || 10737418240; // Fallback 10GB
+      const maxDiskBytes = stats.resources.disk_limit_bytes || 26843545600; // Fallback 10GB
       
       const ramPercent = Math.min((ramBytes / maxRamBytes) * 100, 100);
       const diskPercent = Math.min((diskBytes / maxDiskBytes) * 100, 100);
@@ -91,7 +91,7 @@ export default {
       // Compose Sections
       const topSection = new SectionBuilder()
         .addTextDisplayComponents(statusTitle, powerText)
-        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://i.imgur.com/8QzXz3F.png' } }));
+        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: 'https://res.cloudinary.com/dvsah4ego/image/upload/v1779762823/IMG_20260526_075723_rk0xkc.jpg' } }));
 
       const statsSection = new SectionBuilder()
         .addTextDisplayComponents(cpuText, ramText, diskText)
