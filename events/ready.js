@@ -7,12 +7,11 @@ export default {
   async execute(client) {
     console.log(`[Discord] Logged in as ${client.user.tag}! Initializing services...`);
 
-    // 1. Establish connection to Pterodactyl Console WebSocket
-    try {
-      await pteroWebsocket.connect();
-    } catch (err) {
+    // 1. Start Pterodactyl WebSocket connection in background (non-blocking)
+    // Don't await this so bot starts even if WebSocket fails
+    pteroWebsocket.connect().catch((err) => {
       console.error('[Discord] Failed to start Pterodactyl websocket connection:', err.message);
-    }
+    });
 
     // 2. Setup Dynamic Presence matching Pterodactyl Server State
     client.user.setPresence({

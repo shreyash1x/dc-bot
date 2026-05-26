@@ -27,14 +27,18 @@ class PteroWebsocketService extends EventEmitter {
 
     try {
       // 1. Fetch credentials from Pterodactyl client API
+      console.log('[PteroWebsocket] Step 1: Fetching WebSocket credentials...');
       const credentials = await PteroClient.getWebSocketCredentials();
+      console.log('[PteroWebsocket] Step 1 Complete: Credentials received');
+      
       this.token = credentials.token;
       this.socketUrl = credentials.socket;
 
       // 2. Append token as query parameter for authentication during handshake
+      console.log('[PteroWebsocket] Step 2: Preparing WebSocket URL with token...');
       const wsUrlWithToken = `${this.socketUrl}?token=${encodeURIComponent(this.token)}`;
 
-      console.log('[PteroWebsocket] WebSocket URL:', this.socketUrl);
+      console.log('[PteroWebsocket] WebSocket URL (base):', this.socketUrl);
       console.log('[PteroWebsocket] PTERO_URL env:', process.env.PTERO_URL);
 
       // 3. Create WebSocket connection with token in URL
@@ -48,8 +52,8 @@ class PteroWebsocketService extends EventEmitter {
         rejectUnauthorized: false
       };
 
+      console.log('[PteroWebsocket] Step 3: Creating WebSocket connection...');
       console.log('[PteroWebsocket] Connection options:', { 
-        url: this.socketUrl, 
         origin: origin || 'Not set',
         handshakeTimeout: wsOptions.handshakeTimeout,
         hasToken: !!this.token
@@ -58,15 +62,17 @@ class PteroWebsocketService extends EventEmitter {
       // Extract host from URL for debugging
       try {
         const url = new URL(this.socketUrl);
-        console.log('[PteroWebsocket] Connecting to host:', url.hostname);
-        console.log('[PteroWebsocket] Port:', url.port);
+        console.log('[PteroWebsocket] Target host:', url.hostname);
+        console.log('[PteroWebsocket] Target port:', url.port);
       } catch (e) {
         console.error('[PteroWebsocket] Failed to parse WebSocket URL:', e.message);
       }
 
       this.ws = new WebSocket(wsUrlWithToken, wsOptions);
+      console.log('[PteroWebsocket] WebSocket object created, registering events...');
 
       this.registerEvents();
+      console.log('[PteroWebsocket] Events registered, waiting for connection...');
     } catch (error) {
       console.error('[PteroWebsocket] Connection setup failed:', error.message);
       console.error('[PteroWebsocket] Full error:', error);
@@ -82,7 +88,7 @@ class PteroWebsocketService extends EventEmitter {
     if (!this.ws) return;
 
     this.ws.on('open', () => {
-      console.log('[PteroWebsocket] Socket connection opened. Authenticating...');
+      console.log('[PteroWebsocket] ✅ Socket connection OPENED! Authenticating...');
       this.authenticate();
     });
 
@@ -96,25 +102,25 @@ class PteroWebsocketService extends EventEmitter {
     });
 
     this.ws.on('close', (code, reason) => {
-      console.warn(`[PteroWebsocket] Connection closed (Code: ${code}, Reason: ${reason.toString() || 'None'})`);
+      console.warn(`[PteroWebsocket] ❌ Connection closed (Code: ${code}, Reason: ${reason.toString() || 'None'})`);
       this.handleDisconnect();
     });
 
     this.ws.on('error', (error) => {
-      console.error('[PteroWebsocket] Socket error:', error.message);
+      console.error('[PteroWebsocket] ❌ Socket error:', error.message);
       console.error('[PteroWebsocket] Error code:', error.code);
       console.error('[PteroWebsocket] Error errno:', error.errno);
       if (error.cause) console.error('[PteroWebsocket] Error cause:', error.cause.message);
       
       // Try to provide more specific debugging info
       if (error.message.includes('ENOTFOUND')) {
-        console.error('[PteroWebsocket] DNS resolution failed - cannot find host. Check your PTERO_URL.');
+        console.error('[PteroWebsocket] 🔍 DNS resolution failed - cannot find host. Check your PTERO_URL.');
       } else if (error.message.includes('ECONNREFUSED')) {
-        console.error('[PteroWebsocket] Connection refused - port might not be accessible or service not running.');
+        console.error('[PteroWebsocket] 🔍 Connection refused - port might not be accessible or service not running.');
       } else if (error.message.includes('ETIMEDOUT')) {
-        console.error('[PteroWebsocket] Connection timed out - network unreachable or firewall blocking.');
+        console.error('[PteroWebsocket] 🔍 Connection timed out - network unreachable or firewall blocking.');
       } else if (error.message.includes('handshake')) {
-        console.error('[PteroWebsocket] WebSocket handshake failed - Wings daemon might not be running or URL is incorrect.');
+        console.error('[PteroWebsocket] 🔍 WebSocket handshake failed - try passing token in URL or check Origin header.');
       }
       // close event will follow error event, handling disconnect there
     });
@@ -145,7 +151,8 @@ class PteroWebsocketService extends EventEmitter {
         this.isConnected = true;
         this.isConnecting = false;
         this.reconnectDelay = 2000; // Reset reconnect delay on success
-        console.log('[PteroWebsocket] Successfully authenticated with Pterodactyl console WebSocket.');
+        console.log('[PteroWebsocket] ✅✅ Successfully authenticated with Pterodactyl WebSocket!');
+        console.log('[PteroWebsocket] 🟢 WebSocket is now CONNECTED and receiving server events!');
         this.emit('authenticated');
         break;
 
