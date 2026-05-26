@@ -7,7 +7,28 @@ export default {
   async execute(client) {
     console.log(`[Discord] Logged in as ${client.user.tag}! Initializing services...`);
 
-    // 1. Start Pterodactyl WebSocket connection in background (non-blocking)
+    // Send startup notification
+    try {
+      const owner = await client.application.fetch();
+      if (owner.owner) {
+        const dmChannel = await owner.owner.createDM().catch(() => null);
+        if (dmChannel) {
+          await dmChannel.send(
+            `🤖 **Bot Started Successfully**\n\n` +
+            `Bot: ${client.user.tag}\n` +
+            `Time: ${new Date().toISOString()}\n\n` +
+            `Initializing Pterodactyl WebSocket connection...`
+          ).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error('[Discord] Failed to send startup notification:', err.message);
+    }
+
+    // 1. Pass Discord client to WebSocket for error notifications
+    pteroWebsocket.setDiscordClient(client);
+
+    // 2. Start Pterodactyl WebSocket connection in background (non-blocking)
     // Don't await this so bot starts even if WebSocket fails
     pteroWebsocket.connect().catch((err) => {
       console.error('[Discord] Failed to start Pterodactyl websocket connection:', err.message);

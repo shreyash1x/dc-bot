@@ -14,6 +14,68 @@ class PteroWebsocketService extends EventEmitter {
     this.reconnectDelay = 2000; // Start with 2s
     this.maxReconnectDelay = 60000; // Max 60s
     this.serverStatus = 'offline';
+    this.discordClient = null; // Store Discord client for error notifications
+  }
+
+  /**
+   * Set the Discord client for sending error notifications
+   */
+  setDiscordClient(client) {
+    this.discordClient = client;
+  }
+
+  /**
+   * Send error notification to Discord owner
+   */
+  async sendDiscordError(title, description, details = '') {
+    if (!this.discordClient || !this.discordClient.user) {
+      console.warn('[PteroWebsocket] Discord client not available for error notification');
+      return;
+    }
+
+    try {
+      const owner = await this.discordClient.application.fetch();
+      if (!owner.owner) return;
+
+      // Send DM to bot owner
+      const dmChannel = await owner.owner.createDM().catch(() => null);
+      if (!dmChannel) return;
+
+      const errorMessage = `🚨 **${title}**\n\n${description}${details ? '\n\n**Details:**\n```' + details + '```' : ''}`;
+      
+      await dmChannel.send(errorMessage).catch((err) => {
+        console.error('[PteroWebsocket] Failed to send Discord error notification:', err.message);
+      });
+    } catch (error) {
+      console.error('[PteroWebsocket] Error sending Discord notification:', error.message);
+    }
+  }
+
+  /**
+   * Send success notification to Discord owner
+   */
+  async sendDiscordSuccess(title, description) {
+    if (!this.discordClient || !this.discordClient.user) {
+      console.warn('[PteroWebsocket] Discord client not available for success notification');
+      return;
+    }
+
+    try {
+      const owner = await this.discordClient.application.fetch();
+      if (!owner.owner) return;
+
+      // Send DM to bot owner
+      const dmChannel = await owner.owner.createDM().catch(() => null);
+      if (!dmChannel) return;
+
+      const successMessage = `✅ **${title}**\n\n${description}`;
+      
+      await dmChannel.send(successMessage).catch((err) => {
+        console.error('[PteroWebsocket] Failed to send Discord success notification:', err.message);
+      });
+    } catch (error) {
+      console.error('[PteroWebsocket] Error sending Discord success notification:', error.message);
+    }
   }
 
   /**
@@ -112,16 +174,38 @@ class PteroWebsocketService extends EventEmitter {
       console.error('[PteroWebsocket] Error errno:', error.errno);
       if (error.cause) console.error('[PteroWebsocket] Error cause:', error.cause.message);
       
+      let diagnosticMessage = '';
+      let errorType = 'Unknown Error';
+
       // Try to provide more specific debugging info
       if (error.message.includes('ENOTFOUND')) {
         console.error('[PteroWebsocket] 🔍 DNS resolution failed - cannot find host. Check your PTERO_URL.');
+        errorType = 'DNS Resolution Failed';
+        diagnosticMessage = `Cannot resolve hostname: ${error.message}\n\nCheck that your PTERO_URL environment variable is correct.`;
       } else if (error.message.includes('ECONNREFUSED')) {
         console.error('[PteroWebsocket] 🔍 Connection refused - port might not be accessible or service not running.');
+        errorType = 'Connection Refused';
+        diagnosticMessage = `The port 8080 on your Pterodactyl host is refusing connections.\n\nPossible causes:\n- Wings daemon not running\n- Port not accessible from Railway\n- Firewall blocking the connection`;
       } else if (error.message.includes('ETIMEDOUT')) {
         console.error('[PteroWebsocket] 🔍 Connection timed out - network unreachable or firewall blocking.');
+        errorType = 'Connection Timeout';
+        diagnosticMessage = `Connection to WebSocket timed out after 20 seconds.\n\nPossible causes:\n- Network unreachable\n- Firewall blocking port 8080\n- Halix hosting restrictions`;
       } else if (error.message.includes('handshake')) {
-        console.error('[PteroWebsocket] 🔍 WebSocket handshake failed - try passing token in URL or check Origin header.');
+        console.error('[PteroWebsocket] 🔍 WebSocket handshake failed - token might be invalid or Origin header rejected.');
+        errorType = 'WebSocket Handshake Failed';
+        diagnosticMessage = `WebSocket upgrade rejected during handshake.\n\nPossible causes:\n- Invalid or expired JWT token\n- Origin header rejected by Wings\n- SSL/TLS certificate issue`;
+      } else if (error.message.includes('401')) {
+        errorType = 'Unauthorized (401)';
+        diagnosticMessage = `WebSocket authentication failed - token might not be passed correctly in URL or may be invalid.`;
       }
+
+      // Send to Discord
+      this.sendDiscordError(
+        `WebSocket Connection Error: ${errorType}`,
+        `Failed to connect to Pterodactyl WebSocket on ${this.socketUrl}`,
+        `Error: ${error.message}\nCode: ${error.code}\nErrno: ${error.errno}\n\nDiagnostics:\n${diagnosticMessage}`
+      );
+
       // close event will follow error event, handling disconnect there
     });
   }
@@ -153,6 +237,13 @@ class PteroWebsocketService extends EventEmitter {
         this.reconnectDelay = 2000; // Reset reconnect delay on success
         console.log('[PteroWebsocket] ✅✅ Successfully authenticated with Pterodactyl WebSocket!');
         console.log('[PteroWebsocket] 🟢 WebSocket is now CONNECTED and receiving server events!');
+        
+        // Send success notification to Discord
+        this.sendDiscordSuccess(
+          'WebSocket Connected Successfully ✅',
+          `Bot is now connected to Pterodactyl WebSocket and receiving real-time server events.`
+        );
+        
         this.emit('authenticated');
         break;
 
